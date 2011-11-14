@@ -1,0 +1,5 @@
+.settings.xml
+test/testdir
+tmp/
+*.sublime-*
+.DS_Store

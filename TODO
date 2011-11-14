@@ -1,0 +1,7 @@
+TODO
+====
+
+* Unit tests using decent require mocking library (Mockery?)
+* Decent per-branch configuration
+* Port tests to testing.js
+* Better commandline handling - each "command" can have its own help etc - use cli module?

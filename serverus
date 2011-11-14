@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+'use strict';
+var commandLine = require('./commandLine').parse(),
+    commandPath = './commands/' + commandLine.command;
+/*
+process.on('uncaughtException', function (err) {
+  console.log('Caught exception: ' + err);
+});
+*/
+try{
+    require.resolve(commandPath);
+}catch(e){
+    commandPath = './commands/help';
+}
+
+require(commandPath)(commandLine.args);
