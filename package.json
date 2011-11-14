@@ -1,19 +1,22 @@
 {
   "name": "Serverus",
   "description": "Git branch server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": {
-    "url": ""
+    "type": "git",
+    "url": "git://github.com/BrandwatchLtd/serverus.git"
   },
-  "repository": "git://github.com/BrandwatchLtd/serverus.git",
   "author": "Steve Mason <stevem@brandwatch.com>",
   "main": "serverus",
-  "bin": "./serverus",
+  "bin": {
+    "Serverus": "./serverus"
+  },
   "directories": {
     "lib": "."
   },
   "scripts": {
-    "test": "expresso"
+    "test": "expresso",
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=0.4.0"
@@ -24,5 +27,6 @@
     "http-proxy": "0.7.3",
     "cli": "0.3.8",
     "connect": ">1.7"
-  }
+  },
+  "devDependencies": {}
 }
