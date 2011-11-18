@@ -71,7 +71,7 @@ module.exports = function run(args){
                     if(branchCommitRef != commitRef){
                         console.log(branch.name, 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
 
-                        server.restart();
+                        branch.restart();
                     }
                 });
             });

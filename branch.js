@@ -2,6 +2,7 @@
 var _ = require('underscore'),
     path = require('path'),
     fs = require('fs'),
+    rimraf = require('rimraf'),
     spawn = require('child_process').spawn,
     emptyFn = function(){};
 
@@ -33,7 +34,7 @@ function startServer(branch, runBeforeExec){
 
     if(runBeforeExec && config.beforeExec){
         console.log('Running beforeExec script for', branch.name);
-        branch.status = "Starting";
+        branch.status = "Running beforeExec";
         branch.process = spawn(config.beforeExec, config.beforeExecArgs || [], {cwd: branch.location});
         branch.process.on('uncaughtException', function(e){
             err = e;
@@ -50,6 +51,7 @@ function startServer(branch, runBeforeExec){
         });
         return;
     }
+    branch.status = "Spawning server";
 
     args = _(config.args).map(function(arg){
                 return arg
@@ -67,34 +69,39 @@ function startServer(branch, runBeforeExec){
         branch.out.write(data);
     });
     branch.process.stderr.on('data', function (data) {
-        console.log(branch, data.toString());
+        console.log(branch.name + ":", data.toString());
         branch.error.write(data);
     });
     branch.process.on('uncaughtException', function(err){
-        console.error('uncaught exception in', branch, err);
+        console.error('uncaught exception in', branch.name, err);
+        branch.error.write('uncaught exception:');
+        branch.error.write(err);
         branch.status = "Failed";
         branch.process.kill();
     });
     branch.process.on('exit', function (code) {
         branch.status = branch.status === "Failed" ? "Failed" : "Quit unexpectedly";
+        delete branch.process;
         branch.out.write('exited with code ' + code);
     });
     branch.status = "Running";
 }
 
-function checkoutAndStartServer(branch){
+function checkoutAndStartServer(branch, force){
     var location = branch.location;
 
     if(!path.existsSync(location)){
         fs.mkdirSync(location, '0766');
     }
 
-    branch.sync.checkout(branch, function(err, commitRef){
+    branch.status = "Updating checkout";
+    branch.sync.checkout(branch, force, function(err, commitRef){
         if(err){
             branch.status = "Checkout failed";
             console.error(branch.name, 'could not checkout', err);
             return;
         }
+        branch.status = "Starting";
         console.log('checked out ', branch.name, 'at commit', commitRef);
 
         branch.commitRef = commitRef;
@@ -116,20 +123,20 @@ exports.Branch = function(sync, globalConfig, options){
     branch.status = "Stopped";
     branch.running = false;
 
-    this.start = function(){
+    branch.start = function(force){
         branch.status = "Starting";
         branch.running = true;
         branch.out = branch.out || fs.createWriteStream(location + '.out.log', {flags: 'w'});
         branch.error = branch.error || fs.createWriteStream(location + '.error.log', {flags: 'w'});
 
-        checkoutAndStartServer(branch);
+        checkoutAndStartServer(branch, force);
     };
-    this.restart = function(){
-        killServer(branch, function(){
-            branch.start();
+    branch.restart = function(){
+        branch.stop(function(){
+            branch.start(true);
         });
     };
-    this.stop = function(cb){
+    branch.stop = function(cb){
         killServer(branch, function(){
             if(branch.out){
                 branch.out.destroySoon();
