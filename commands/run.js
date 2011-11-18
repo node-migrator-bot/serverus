@@ -42,7 +42,8 @@ module.exports = function run(args){
         }).forEach(function(fullBranchName){
             var branchName = fullBranchName.split('/').slice(1).join('/'),
                 branch = branches[fullBranchName] = new Branch(sync, config, {
-                    name: fullBranchName,
+                    name: branchName,
+                    fullName: fullBranchName,
                     port: currentPort++,
                     config: config[branchName]
                 });
@@ -58,18 +59,17 @@ module.exports = function run(args){
 
     monitor = setInterval(function(){
         git.fetch(function(err, output){
-            _.keys(branches).forEach(function(branch){
+            _(branches).each(function(branch, branchName){
                 if(!branch.running){
                     return;
                 }
 
-                git.log('-n1 --pretty=oneline "' + branch + '" --', function(err, output){
-                    var server = branches[branch],
-                        branchCommitRef = output.split(' ')[0],
-                        commitRef = branches[branch].commitRef;
+                git.log('-n1 --pretty=oneline "' + branchName + '" --', function(err, output){
+                    var branchCommitRef = output.split(' ')[0],
+                        commitRef = branch.commitRef;
 
                     if(branchCommitRef != commitRef){
-                        console.log(branch, 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
+                        console.log(branch.name, 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
 
                         server.restart();
                     }

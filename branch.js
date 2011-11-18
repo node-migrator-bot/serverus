@@ -89,7 +89,7 @@ function checkoutAndStartServer(branch){
         fs.mkdirSync(location, '0766');
     }
 
-    branch.sync.checkout(branch.name, location, function(err, commitRef){
+    branch.sync.checkout(branch, function(err, commitRef){
         if(err){
             branch.status = "Checkout failed";
             console.error(branch.name, 'could not checkout', err);
@@ -108,6 +108,7 @@ exports.Branch = function(sync, globalConfig, options){
         location = makeCheckoutLocation(options.name);
 
     branch.name = options.name;
+    branch.fullName = options.fullName || 'origin/' + options.name;
     branch.sync = sync;
     branch.config = _.extend(globalConfig, options.config || {});
     branch.port = options.port;

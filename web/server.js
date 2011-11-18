@@ -12,7 +12,7 @@ module.exports = function(options, branches){
         repoDir = path.join(process.cwd(), '_repo/'),
         git = new Git({dir: repoDir});
 
-    return express.createServer(
+    var app = express.createServer(
         function(req, res, next){
             var hostAndPort = req.headers.host,
                 host = hostAndPort.split(':')[0],
@@ -74,15 +74,32 @@ module.exports = function(options, branches){
                     return link;
                 }
 
-                res.end('<!DOCTYPE html><html><head><title>Running servers</title></head>' +
-                    '<body><h1>Running servers</h1><ul>' + _(branches).chain()
-                        .keys()
-                        .sortBy(function(branchName){
-                            return (branches[branchName].running ? '_' : '') + branchName;
-                        })
-                        .map(function(branchName){
-                            return makeLink(branches[branchName]);
-                        }).value().join('') + '</ul></body></html>');
+                var data = _(branches).reduce(function(memo, branch){
+                    var safeName = branch.name.replace(/\//, '-')[1],
+                        domain = "http://";
+
+                    if(options.domain === 'localhost'){
+                        domain += 'localhost:' + branch.port + options.root;
+                    }else{
+                        domain += safeName + '.' + options.domain + ':' + options.port + options.root;
+                    }
+                    var data = {
+                        name: branch.name,
+                        domain: domain,
+                        status: branch.status
+                    };
+                    if(branch.running){
+                        memo.runningBranches.push(data);
+                    }else{
+                        memo.stoppedBranches.push(data);
+                    }
+                    return memo;
+                }, {
+                    runningBranches: [],
+                    stoppedBranches: []
+                });
+
+                res.render('home.template', data);
             });
             router.get('/:branch/log', function(req, res){
                 var branch= req.params.branch;
@@ -98,7 +115,7 @@ module.exports = function(options, branches){
                         '<body><h1>Output for ' + branch + '</h1><pre>' + output + '</pre></body></html>');
                 });
             });
-            router.get('/:branch/errors', function(req, res){
+            router.get('/:branch/error', function(req, res){
                 var branch = req.params.branch;
                 fs.readFile(path.join(process.cwd(), branch + ".error.log"), function(err, output){
                     res.end('<!DOCTYPE html><html><head><title>Error output for ' + branch + '</title></head>' +
@@ -107,4 +124,12 @@ module.exports = function(options, branches){
             });
         })
     );
+
+    app.set('views', __dirname + '/views');
+    app.register('.template', require('stache'));
+    app.set('view options', {
+        layout: true
+    });
+
+    return app;
 };
