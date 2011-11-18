@@ -1,14 +1,12 @@
 'use strict';
 var _ = require('underscore'),
     path = require('path'),
-    fs = require('fs'),
-    exec = require('child_process').exec,
-    spawn = require('child_process').spawn,
     cli = require('cli'),
-    server = require('../server'),
     Sync = require('sync'),
     Config = require('config'),
-    Git = require('git');
+    Git = require('git'),
+    server = require('../server'),
+    Branch = require('../branch').Branch;
 
 module.exports = function run(args){
     var config = new Config(),
@@ -37,134 +35,28 @@ module.exports = function run(args){
     });
     currentPort = options.startingPort;
 
-    function getServer(branch, location){
-        var server = branches[branch];
-
-        function killServer(){
-            console.log('killing server on port', server.port);
-            process.exitCounter = (process.exitCounter || 0) + 1;
-            process.stdin.resume();
-            if(server.process){
-                server.process.on('exit', function(){
-                    console.log('server on', server.port, 'exited');
-                    server.out.destroySoon();
-                    server.error.destroySoon();
-
-                    if(--process.exitCounter === 0){
-                        console.log('all processes cleaned up, exiting');
-                        process.exit(0);
-                    }
-                });
-                process.kill(server.process.pid);
-            }
-            return false;
-        }
-
-        if(!server){
-            server = branches[branch] = {
-                port: currentPort++,
-                location: location,
-                status: "Starting",
-                out: fs.createWriteStream(location + '.out.log', {flags: 'w'}),
-                error: fs.createWriteStream(location + '.error.log', {flags: 'w'})
-            };
-            process.on('SIGINT', killServer);
-            //process.on('uncaughtException', killServer);
-        }
-
-        return server;
-    }
-
-    function startServer(branch, server, runBeforeExec){
-        var config = server.config,
-            args = server.args,
-            process;
-
-        if(runBeforeExec && config.beforeExec){
-            console.log('Running beforeExec script for', branch);
-            server.status = "Starting";
-            exec(config.beforeExec, {cwd: server.location}, function(err, output){
-                if(err) {
-                    server.status = "beforeExec failed";
-                    return console.log('error running beforeExec script for', branch, err);
-                }
-
-                startServer(branch, server, false);
-            });
-            return;
-        }
-
-        console.log('Spawning server for', branch + ':', config.exec, args);
-
-        server.process = spawn(config.exec, args, {
-            cwd: server.location
-        });
-
-        server.process.stdout.on('data', function (data) {
-            server.out.write(data);
-        });
-        server.process.stderr.on('data', function (data) {
-            console.log(branch, data.toString());
-            server.error.write(data);
-        });
-        server.process.on('uncaughtException', function(err){
-            console.error('uncaught exception in', branch, err);
-            server.status = "Failed";
-            server.process.kill();
-        });
-        server.process.on('exit', function (code) {
-            server.status = server.status === "Failed" ? "Failed" : "Quit unexpectedly";
-            server.out.write('exited with code ' + code);
-        });
-        server.status = "Running";
-    }
-
-    function makeCheckoutLocation(branchName){
-        return path.join(process.cwd(), branchName.replace(/\//g, '_').replace('origin_', ''));
-    }
-
-    function checkoutAndStartServer(branch, additionalConfig){
-        var location = makeCheckoutLocation(branch),
-            combinedConfig = _.extend(config, additionalConfig || {});
-
-        if(!path.existsSync(location)){
-            fs.mkdirSync(location, '0766');
-        }
-
-        sync.checkout(branch, location, function(err, commitRef){
-            var server = getServer(branch, location),
-                args = _(combinedConfig.args).map(function(arg){
-                        return arg
-                            .replace(/\$PORT\+1000/g, server.port + 1000)
-                            .replace(/\$PORT/g, server.port);
-                    });
-
-            if(err){
-                server.status = "Checkout failed";
-                console.error(branch, 'could not checkout', err);
-                return;
-            }
-            console.log('checked out ', branch, 'at commit', commitRef);
-
-            server.commitRef = commitRef;
-            server.location = location;
-            server.args = args;
-            server.config = combinedConfig;
-
-            startServer(branch, server, true);
-        });
-    }
-
     if(config.branches){
-        config.branches.forEach(function(branch){
-            checkoutAndStartServer("origin/" + branch, config[branch]);
+        config.branches.forEach(function(branchName){
+            var fullBranchName = "origin/" + branchName,
+                branch = branches[fullBranchName] = new Branch(sync, config, {
+                    name: fullBranchName,
+                    port: currentPort++,
+                    config: config[branchName]
+                });
+            branch.start();
         });
     }else{
         git.branches('-r', function(err, branches){
             _(branches).sortBy(function(branchName){
                 return branchName;
-            }).forEach(function(branch){
-                checkoutAndStartServer(branch, config[branch] || config[branch.substring(branch.indexOf('/')+1)]);
+            }).forEach(function(fullBranchName){
+                var branchName = fullBranchName.split('/').slice(1).join('/'),
+                    branch = branches[fullBranchName] = new Branch(sync, config, {
+                        name: fullBranchName,
+                        port: currentPort++,
+                        config: config[branchName]
+                    });
+                branch.start();
             });
         });
     }
@@ -184,21 +76,8 @@ module.exports = function run(args){
 
                     if(branchCommitRef != commitRef){
                         console.log(branch, 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
-                        sync.checkout(branch, server.location, function(err){
-                            if(err){
-                                server.status = "Checkout failed";
-                                console.error(branch, 'could not checkout', err);
-                                return;
-                            }
-                            console.log('restarting server due to branch change', branch);
 
-                            server.process.on('exit', function(){
-                                process.nextTick(function(){
-                                    startServer(branch, server, true);
-                                });
-                            });
-                            process.kill(server.process.id);
-                        });
+                        server.restart();
                     }
                 });
             });
@@ -207,5 +86,17 @@ module.exports = function run(args){
 
     process.on('exit', function(){
         clearInterval(monitor);
+
+        _(branches).each(function(branch, key){
+            process.exitCounter = (process.exitCounter || 0) + 1;
+            process.stdin.resume();
+
+            branch.stop(function(){
+                if(--process.exitCounter === 0){
+                    console.log('all processes cleaned up, exiting');
+                    process.exit(0);
+                }
+            });
+        });
     });
 };
