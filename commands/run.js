@@ -62,9 +62,7 @@ module.exports = function run(args){
     }
 
     console.log('spawning serverus\'s server on ', 'http://' + options.domain + (options.port === 80 ? '' : ':' + options.port));
-    server(options, {
-        branches: branches
-    }).listen(options.port);
+    server(options, branches).listen(options.port);
 
     monitor = setInterval(function(){
         git.fetch(function(err, output){
@@ -84,7 +82,7 @@ module.exports = function run(args){
         });
     }, 15000);
 
-    process.on('exit', function(){
+    process.on('SIGINT', function(){
         clearInterval(monitor);
 
         _(branches).each(function(branch, key){

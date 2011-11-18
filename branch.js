@@ -27,8 +27,7 @@ function makeCheckoutLocation(branchName){
 
 function startServer(branch, runBeforeExec){
     var config = branch.config,
-        args = config.args,
-        process;
+        args;
 
     if(runBeforeExec && config.beforeExec){
         console.log('Running beforeExec script for', branch.name);
@@ -43,6 +42,12 @@ function startServer(branch, runBeforeExec){
         });
         return;
     }
+
+    args = _(config.args).map(function(arg){
+                return arg
+                    .replace(/\$PORT\+1000/g, branch.port + 1000)
+                    .replace(/\$PORT/g, branch.port);
+            });
 
     console.log('Spawning server for', branch.name + ':', config.exec, args);
 
@@ -77,12 +82,6 @@ function checkoutAndStartServer(branch){
     }
 
     branch.sync.checkout(branch.name, location, function(err, commitRef){
-        var args = _(branch.config.args).map(function(arg){
-                    return arg
-                        .replace(/\$PORT\+1000/g, branch.port + 1000)
-                        .replace(/\$PORT/g, branch.port);
-                });
-
         if(err){
             branch.status = "Checkout failed";
             console.error(branch.name, 'could not checkout', err);
@@ -126,9 +125,11 @@ exports.Branch = function(sync, globalConfig, options){
         killServer(branch);
     };
     this.stop = function(cb){
-        branch.out.destroySoon();
-        branch.error.destroySoon();
+        killServer(branch, function(){
+            branch.out.destroySoon();
+            branch.error.destroySoon();
 
-        killServer(branch, cb);
+            cb();
+        });
     };
 };

@@ -7,7 +7,7 @@ var connect =require('connect'),
     path = require('path'),
     Git = require('git');
 
-module.exports = function(options, serverus){
+module.exports = function(options, branches){
     var proxy = new httpProxy.RoutingProxy(),
         repoDir = path.join(process.cwd(), '_repo/'),
         git = new Git({dir: repoDir});
@@ -18,7 +18,7 @@ module.exports = function(options, serverus){
                 host = hostAndPort.split(':')[0],
                 port = hostAndPort.split(':')[1] || 80,
                 branch = 'origin/' + host.replace('.' + options.domain, ''),
-                serverKey = _(serverus.branches).chain()
+                serverKey = _(branches).chain()
                         .keys()
                         .detect(function(name){
                             if(name.toLowerCase() === branch.toLowerCase()){
@@ -26,7 +26,7 @@ module.exports = function(options, serverus){
                             }
                         })
                         .value(),
-                server = serverus.branches[serverKey];
+                server = branches[serverKey];
 
             if(options.domain !== 'localhost' && server){
                 proxy.proxyRequest(req, res, {
@@ -42,25 +42,25 @@ module.exports = function(options, serverus){
                 function makeLink(branch){
                     var link = '<li><a href="http://';
                     if(options.domain === 'localhost'){
-                        link += 'localhost:' + serverus.branches[branch].port + options.root;
+                        link += 'localhost:' + branches[branch].port + options.root;
                     }else{
                         link += branch.split('/')[1] + '.' + options.domain + ':' + options.port + options.root;
                     }
                     link += '" target="_blank"/>' + branch.split('/')[1] + '</a> (';
 
-                    switch(serverus.branches[branch].status.toLowerCase()){
+                    switch(branches[branch].status.toLowerCase()){
                         case "running":
-                            link += '<span style="color:green;">' + serverus.branches[branch].status + '</span>';
+                            link += '<span style="color:green;">' + branches[branch].status + '</span>';
                             break;
                         case "quit unexpectedly":
                         case "checkout failed":
-                            link += '<span style="color:red;">' + serverus.branches[branch].status + '</span>';
+                            link += '<span style="color:red;">' + branches[branch].status + '</span>';
                             break;
                         case "starting":
-                            link += '<span style="color:orange;">' + serverus.branches[branch].status + '</span>';
+                            link += '<span style="color:orange;">' + branches[branch].status + '</span>';
                             break;
                         default:
-                            link += (serverus.branches[branch].status || 'Unknown');
+                            link += (branches[branch].status || 'Unknown');
                             break;
                     }
 
@@ -73,7 +73,7 @@ module.exports = function(options, serverus){
                 }
 
                 res.end('<!DOCTYPE html><html><head><title>Running servers</title></head>' +
-                    '<body><h1>Running servers</h1><ul>' + _(serverus.branches).chain()
+                    '<body><h1>Running servers</h1><ul>' + _(branches).chain()
                         .keys()
                         .sortBy(function(branch){
                             return branch;
