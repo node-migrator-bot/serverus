@@ -174,7 +174,7 @@ exports.Branch = Backbone.Model.extend({
     stop: function(cb){
         var branch = this;
 
-        killServer(this, function(){
+        killServer(branch, function(){
             branch.set({status: "Stopped"});
             if(branch.out){
                 branch.out.destroySoon();

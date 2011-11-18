@@ -65,7 +65,7 @@ module.exports = function run(args){
             var branchName = getShortBranchName(fullBranchName),
                 branch = getOrMakeBranch(fullBranchName);
 
-            if(config.branches.indexOf(branchName) > -1){
+            if(config.branches && config.branches.indexOf(branchName) > -1){
                 branch.start();
             }
         });
@@ -91,6 +91,7 @@ module.exports = function run(args){
                         if(branchCommitRef != commitRef){
                             console.log(branch.get('name'), 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
 
+                            branch.set('commitRef', commitRef);
                             branch.restart();
                         }
                     });
