@@ -12,6 +12,18 @@ module.exports = function(options, branches){
         repoDir = path.join(process.cwd(), '_repo/'),
         git = new Git({dir: repoDir});
 
+    function getBranch(req, res, next){
+        var name = req.params.branch;
+
+        req.params.branch = branches[name] || branches["origin/" + name];
+
+        if(!req.params.branch){
+            res.writeHead(404);
+            return res.end("Branch not found");
+        }
+        next();
+    }
+
     var app = express.createServer(
         function(req, res, next){
             var hostAndPort = req.headers.host,
@@ -37,45 +49,12 @@ module.exports = function(options, branches){
                 next();
             }
         },
+        express.favicon(),
+        express['static'](path.join(__dirname, 'public')),
         express.router(function(router){
             router.get('/', function(req, res){
-                function makeLink(branch){
-                    var safeName = branch.name.replace(/\//, '-')[1],
-                        link = '<li><a href="http://';
-                    if(options.domain === 'localhost'){
-                        link += 'localhost:' + branch.port + options.root;
-                    }else{
-                        link += safeName + '.' + options.domain + ':' + options.port + options.root;
-                    }
-                    link += '" target="_blank"/>' + branch.name + '</a> (';
-
-                    switch(branch.status.toLowerCase()){
-                        case "running":
-                            link += '<span style="color:green;">' + branch.status + '</span>';
-                            break;
-                        case "quit unexpectedly":
-                        case "checkout failed":
-                            link += '<span style="color:red;">' + branch.status + '</span>';
-                            break;
-                        case "starting":
-                            link += '<span style="color:orange;">' + branch.status + '</span>';
-                            break;
-                        default:
-                            link += (branch.status || 'Unknown');
-                            break;
-                    }
-
-                    link += ': <a href="/' + branch.name + '/log" target="_blank">show git log</a> ';
-                    link += '| <a href="/' + branch.name + '/out" target="_blank">output stream</a> ';
-                    link += '| <a href="/' + branch.name + '/errors" target="_blank">error stream</a> ';
-
-                    link += ')';
-                    link += '</li>';
-                    return link;
-                }
-
                 var data = _(branches).reduce(function(memo, branch){
-                    var safeName = branch.name.replace(/\//, '-')[1],
+                    var safeName = branch.name.replace(/\//, '-'),
                         domain = "http://";
 
                     if(options.domain === 'localhost'){
@@ -86,7 +65,8 @@ module.exports = function(options, branches){
                     var data = {
                         name: branch.name,
                         domain: domain,
-                        status: branch.status
+                        status: (branch.status || "Unknown"),
+                        statusClass: (branch.status || "unknown").toLowerCase().replace(/\s/, '')
                     };
                     if(branch.running){
                         memo.runningBranches.push(data);
@@ -99,28 +79,63 @@ module.exports = function(options, branches){
                     stoppedBranches: []
                 });
 
+                data.title = "Running servers";
+
                 res.render('home.template', data);
             });
-            router.get('/:branch/log', function(req, res){
-                var branch= req.params.branch;
-                git.log('-n20 "origin/' + branch + '" --', function(err, output){
-                    res.end('<!DOCTYPE html><html><head><title>Git log for ' + branch + '</title></head>' +
-                        '<body><h1>Git log for ' + branch + ' (last 20 entries)</h1><pre>' + output + '</pre></body></html>');
+            router.get('/:branch/log', getBranch, function(req, res, next){
+                var branch = req.params.branch;
+
+                git.log('-n20 "' + branch.fullName + '" --', function(err, output){
+                    res.render('log.template', {
+                        title: "Git log for " + branch.name,
+                        branch: branch.name,
+                        output: output
+                    });
                 });
             });
-            router.get('/:branch/out', function(req, res){
+            router.get('/:branch/out', getBranch, function(req, res, next){
                 var branch = req.params.branch;
-                fs.readFile(path.join(process.cwd(), branch + ".out.log"), function(err, output){
-                    res.end('<!DOCTYPE html><html><head><title>Output for ' + branch + '</title></head>' +
-                        '<body><h1>Output for ' + branch + '</h1><pre>' + output + '</pre></body></html>');
+
+                fs.readFile(path.join(process.cwd(), branch.name + ".out.log"), function(err, output){
+                    res.render('output.template', {
+                        title: "Output stream for " + branch.name,
+                        branch: branch.name,
+                        output: output
+                    });
                 });
             });
-            router.get('/:branch/error', function(req, res){
+            router.get('/:branch/errors', getBranch, function(req, res, next){
                 var branch = req.params.branch;
-                fs.readFile(path.join(process.cwd(), branch + ".error.log"), function(err, output){
-                    res.end('<!DOCTYPE html><html><head><title>Error output for ' + branch + '</title></head>' +
-                        '<body><h1>Error output for ' + branch + '</h1><pre>' + output + '</pre></body></html>');
+
+                fs.readFile(path.join(process.cwd(), branch.name + ".error.log"), function(err, output){
+                    res.render('errors.template', {
+                        title: "Error stream for " + branch.name,
+                        branch: branch.name,
+                        output: output
+                    });
                 });
+            });
+            router.post('/:branch/start', getBranch, function(req, res, next){
+                var branch = req.params.branch;
+
+                branch.start();
+
+                res.redirect('/');
+            });
+            router.post('/:branch/restart', getBranch, function(req, res, next){
+                var branch = req.params.branch;
+
+                branch.restart();
+
+                res.redirect('/');
+            });
+            router.post('/:branch/stop', getBranch, function(req, res, next){
+                var branch = req.params.branch;
+
+                branch.stop();
+
+                res.redirect('/');
             });
         })
     );

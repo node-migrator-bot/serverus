@@ -140,7 +140,7 @@ exports.Branch = function(sync, globalConfig, options){
                 delete branch.error;
             }
 
-            cb();
+            (cb || emptyFn)();
         });
     };
 };

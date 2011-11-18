@@ -1,23 +1,36 @@
-<h1>Running servers</h1>
-<ul>
-    {{#runningBranches}}
-    <li>
-        <a href="{{domain}}">{{name}}</a>
-        ({{status}})
-        <a href="/{{name}}/log">git log</a>
-        <a href="/{{name}}/out">output stream</a>
-        <a href="/{{name}}/error">error stream</a>
-    </li>
-    {{/runningBranches}}
-</ul>
+<section id="runningServers">
+    <h1>Running servers</h1>
+    <ul class="branches">
+        {{#runningBranches}}
+        <li class="branch">
+            <a href="{{domain}}" class="name">{{name}}</a>
+            <span class="status {{statusClass}}">{{status}}</span>
+            <form action="/{{name}}/stop" method="POST">
+                <input type="submit" value="Stop" />
+            </form>
+            <form action="/{{name}}/restart" method="POST">
+                <input type="submit" value="Restart" />
+            </form>
+            <a href="/{{name}}/log" class="gitLog">git log</a>
+            <a href="/{{name}}/out" class="outputStream">output stream</a>
+            <a href="/{{name}}/errors" class="errorStream">error stream</a>
+        </li>
+        {{/runningBranches}}
+    </ul>
+</section>
 
-<h1>Stopped servers</h1>
-<ul>
-    {{#stoppedBranches}}
-    <li>
-        {{name}}
-        ({{status}})
-        <a href="/{{name}}/log">git log</a>
-    </li>
-    {{/stoppedBranches}}
-</ul>
+<section id="stoppedServers">
+    <h1>Stopped servers</h1>
+    <ul class="branches">
+        {{#stoppedBranches}}
+        <li class="branch">
+            <span class="name">{{name}}</span>
+            <span class="status {{statusClass}}">{{status}}</span>
+            <form action="/{{name}}/start" method="POST">
+                <input type="submit" value="Start" />
+            </form>
+            <a href="/{{name}}/log" class="gitLog">git log</a>
+        </li>
+        {{/stoppedBranches}}
+    </ul>
+</section>

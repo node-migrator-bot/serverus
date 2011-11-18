@@ -1,0 +1,2 @@
+<h1>Git log for {{branch}} (last 20 entries)</h1>
+<pre>{{output}}</pre>

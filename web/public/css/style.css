@@ -1,0 +1,23 @@
+html,body{
+    font-family: arial,helvetica,sans-serif;
+}
+.branch{
+}
+.branch form{
+    display:inline;
+}
+.status:before{
+    content: '(';
+}
+.status:after{
+    content: ')';
+}
+.status.running{
+    color:green;
+}
+.status.starting{
+    color:orange;
+}
+.status.quitunexpectedly,.status.checkoutfailed{
+    color:red;
+}
