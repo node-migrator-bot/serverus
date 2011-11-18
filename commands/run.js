@@ -35,31 +35,23 @@ module.exports = function run(args){
     });
     currentPort = options.startingPort;
 
-    if(config.branches){
-        config.branches.forEach(function(branchName){
-            var fullBranchName = "origin/" + branchName,
+    git.branches('-r', function(err, gitBranches){
+        console.log('found', gitBranches.length, 'branches');
+        _(gitBranches).sortBy(function(branchName){
+            return branchName;
+        }).forEach(function(fullBranchName){
+            var branchName = fullBranchName.split('/').slice(1).join('/'),
                 branch = branches[fullBranchName] = new Branch(sync, config, {
                     name: fullBranchName,
                     port: currentPort++,
                     config: config[branchName]
                 });
-            branch.start();
-        });
-    }else{
-        git.branches('-r', function(err, branches){
-            _(branches).sortBy(function(branchName){
-                return branchName;
-            }).forEach(function(fullBranchName){
-                var branchName = fullBranchName.split('/').slice(1).join('/'),
-                    branch = branches[fullBranchName] = new Branch(sync, config, {
-                        name: fullBranchName,
-                        port: currentPort++,
-                        config: config[branchName]
-                    });
+
+            if(config.branches.indexOf(branchName) > -1){
                 branch.start();
-            });
+            }
         });
-    }
+    });
 
     console.log('spawning serverus\'s server on ', 'http://' + options.domain + (options.port === 80 ? '' : ':' + options.port));
     server(options, branches).listen(options.port);
@@ -67,6 +59,10 @@ module.exports = function run(args){
     monitor = setInterval(function(){
         git.fetch(function(err, output){
             _.keys(branches).forEach(function(branch){
+                if(!branch.running){
+                    return;
+                }
+
                 git.log('-n1 --pretty=oneline "' + branch + '" --', function(err, output){
                     var server = branches[branch],
                         branchCommitRef = output.split(' ')[0],
@@ -82,15 +78,25 @@ module.exports = function run(args){
         });
     }, 15000);
 
+    var exiting = false;
     process.on('SIGINT', function(){
         clearInterval(monitor);
 
+        if(exiting){
+            console.log('already exiting, so killing myself completely (beware of zombie processes)');
+            return process.exit(1);
+        }
+
+        exiting = true;
+        console.log('killing branches, ctrl-c again will exit without cleaning up');
         _(branches).each(function(branch, key){
-            process.exitCounter = (process.exitCounter || 0) + 1;
             process.stdin.resume();
 
             branch.stop(function(){
-                if(--process.exitCounter === 0){
+                var remainingBranches = _(branches).keys().length;
+                delete branches[key];
+
+                if(--remainingBranches === 0){
                     console.log('all processes cleaned up, exiting');
                     process.exit(0);
                 }

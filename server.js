@@ -75,8 +75,8 @@ module.exports = function(options, branches){
                 res.end('<!DOCTYPE html><html><head><title>Running servers</title></head>' +
                     '<body><h1>Running servers</h1><ul>' + _(branches).chain()
                         .keys()
-                        .sortBy(function(branch){
-                            return branch;
+                        .sortBy(function(branchName){
+                            return (branches[branchName].running ? '_' : '') + branchName;
                         })
                         .map(function(branch){
                             return makeLink(branch);

@@ -2,16 +2,17 @@
 var _ = require('underscore'),
     path = require('path'),
     fs = require('fs'),
-    exec = require('child_process').exec,
     spawn = require('child_process').spawn,
     emptyFn = function(){};
 
 function killServer(branch, cb){
     cb = cb || emptyFn;
+    branch.running = false;
+
     if(!branch.process){
         return cb();
     }
-    console.log('killing server on port', branch.port);
+    console.log('killing server for', branch.name, 'on port', branch.port);
 
     branch.process.on('exit', function(){
         console.log('server on', branch.port, 'exited');
@@ -27,18 +28,25 @@ function makeCheckoutLocation(branchName){
 
 function startServer(branch, runBeforeExec){
     var config = branch.config,
-        args;
+        args,
+        err;
 
     if(runBeforeExec && config.beforeExec){
         console.log('Running beforeExec script for', branch.name);
         branch.status = "Starting";
-        exec(config.beforeExec, {cwd: branch.location}, function(err, output){
+        branch.process = spawn(config.beforeExec, config.beforeExecArgs || [], {cwd: branch.location});
+        branch.process.on('uncaughtException', function(e){
+            err = e;
+        });
+        branch.process.on('exit', function(){
             if(err) {
                 branch.status = "beforeExec failed";
                 return console.log('error running beforeExec script for', branch.name, err);
             }
 
-            startServer(branch, false);
+            if(branch.running){
+                startServer(branch, false);
+            }
         });
         return;
     }
@@ -105,29 +113,31 @@ exports.Branch = function(sync, globalConfig, options){
     branch.port = options.port;
     branch.location = location;
     branch.status = "Stopped";
-    branch.out = fs.createWriteStream(location + '.out.log', {flags: 'w'});
-    branch.error = fs.createWriteStream(location + '.error.log', {flags: 'w'});
+    branch.running = false;
 
     this.start = function(){
         branch.status = "Starting";
+        branch.running = true;
+        branch.out = branch.out || fs.createWriteStream(location + '.out.log', {flags: 'w'});
+        branch.error = branch.error || fs.createWriteStream(location + '.error.log', {flags: 'w'});
 
         checkoutAndStartServer(branch);
     };
     this.restart = function(){
-        if(!branch.process){
-            return;
-        }
-        branch.process.on('exit', function(){
-            process.nextTick(function(){
-                branch.start();
-            });
+        killServer(branch, function(){
+            branch.start();
         });
-        killServer(branch);
     };
     this.stop = function(cb){
         killServer(branch, function(){
-            branch.out.destroySoon();
-            branch.error.destroySoon();
+            if(branch.out){
+                branch.out.destroySoon();
+                delete branch.out;
+            }
+            if(branch.error){
+                branch.error.destroySoon();
+                delete branch.error;
+            }
 
             cb();
         });
