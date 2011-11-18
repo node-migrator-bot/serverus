@@ -19,14 +19,16 @@
     "start": "node server.js"
   },
   "engines": {
-    "node": ">=0.4.0"
+    "node": ">=0.4"
   },
   "dependencies": {
-    "underscore": ">1.2.0",
-    "rimraf": ">1.0.8",
-    "http-proxy": ">0.7.3",
-    "cli": ">0.3.8",
-    "express": ">2.5"
+    "underscore": "1.2.x",
+    "backbone": "0.5.x",
+    "rimraf": "1.0.x",
+    "http-proxy": "0.7.x",
+    "cli": "0.3.x",
+    "stache": "0.1.x"
+    "express": "2.5.x"
   },
   "devDependencies": {}
 }
