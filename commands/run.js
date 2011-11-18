@@ -5,7 +5,7 @@ var _ = require('underscore'),
     Sync = require('sync'),
     Config = require('config'),
     Git = require('git'),
-    server = require('../server'),
+    server = require('../web/server'),
     Branch = require('../branch').Branch;
 
 module.exports = function run(args){

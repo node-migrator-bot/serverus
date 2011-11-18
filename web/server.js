@@ -40,35 +40,37 @@ module.exports = function(options, branches){
         connect.router(function(router){
             router.get('/', function(req, res){
                 function makeLink(branch){
-                    var link = '<li><a href="http://';
+                    var safeName = branch.name.replace(/\//, '-')[1],
+                        link = '<li><a href="http://';
                     if(options.domain === 'localhost'){
-                        link += 'localhost:' + branches[branch].port + options.root;
+                        link += 'localhost:' + branch.port + options.root;
                     }else{
-                        link += branch.split('/')[1] + '.' + options.domain + ':' + options.port + options.root;
+                        link += safeName + '.' + options.domain + ':' + options.port + options.root;
                     }
-                    link += '" target="_blank"/>' + branch.split('/')[1] + '</a> (';
+                    link += '" target="_blank"/>' + branch.name + '</a> (';
 
-                    switch(branches[branch].status.toLowerCase()){
+                    switch(branch.status.toLowerCase()){
                         case "running":
-                            link += '<span style="color:green;">' + branches[branch].status + '</span>';
+                            link += '<span style="color:green;">' + branch.status + '</span>';
                             break;
                         case "quit unexpectedly":
                         case "checkout failed":
-                            link += '<span style="color:red;">' + branches[branch].status + '</span>';
+                            link += '<span style="color:red;">' + branch.status + '</span>';
                             break;
                         case "starting":
-                            link += '<span style="color:orange;">' + branches[branch].status + '</span>';
+                            link += '<span style="color:orange;">' + branch.status + '</span>';
                             break;
                         default:
-                            link += (branches[branch].status || 'Unknown');
+                            link += (branch.status || 'Unknown');
                             break;
                     }
 
-                    link += ': <a href="/' + branch.split('/')[1] + '/log" target="_blank">show git log</a> ';
-                    link += '| <a href="/' + branch.split('/')[1] + '/out" target="_blank">output stream</a> ';
-                    link += '| <a href="/' + branch.split('/')[1] + '/errors" target="_blank">error stream</a> ';
+                    link += ': <a href="/' + branch.name + '/log" target="_blank">show git log</a> ';
+                    link += '| <a href="/' + branch.name + '/out" target="_blank">output stream</a> ';
+                    link += '| <a href="/' + branch.name + '/errors" target="_blank">error stream</a> ';
 
-                    link += ')</li>';
+                    link += ')';
+                    link += '</li>';
                     return link;
                 }
 
@@ -78,8 +80,8 @@ module.exports = function(options, branches){
                         .sortBy(function(branchName){
                             return (branches[branchName].running ? '_' : '') + branchName;
                         })
-                        .map(function(branch){
-                            return makeLink(branch);
+                        .map(function(branchName){
+                            return makeLink(branches[branchName]);
                         }).value().join('') + '</ul></body></html>');
             });
             router.get('/:branch/log', function(req, res){
