@@ -4,19 +4,20 @@ var _ = require('underscore'),
     fs = require('fs'),
     rimraf = require('rimraf'),
     spawn = require('child_process').spawn,
+    Backbone = require('backbone'),
     emptyFn = function(){};
 
 function killServer(branch, cb){
     cb = cb || emptyFn;
-    branch.running = false;
+    branch.set({running: false});
 
     if(!branch.process){
         return cb();
     }
-    console.log('killing server for', branch.name, 'on port', branch.port);
+    console.log('killing server for', branch.get('name'), 'on port', branch.get('port'));
 
     branch.process.on('exit', function(){
-        console.log('server on', branch.port, 'exited');
+        console.log('server on', branch.get('port'), 'exited');
 
         cb();
     });
@@ -28,125 +29,153 @@ function makeCheckoutLocation(branchName){
 }
 
 function startServer(branch, runBeforeExec){
-    var config = branch.config,
+    var config = branch.get('config'),
         args,
         err;
 
     if(runBeforeExec && config.beforeExec){
-        console.log('Running beforeExec script for', branch.name);
+        console.log('Running beforeExec script for', branch.get('name'));
         branch.status = "Running beforeExec";
 
         branch.out.write('beforeExec is talking:\n');
         branch.error.write('beforeExec is talking:\n');
 
-        branch.process = spawn(config.beforeExec, config.beforeExecArgs || [], {cwd: branch.location});
+        branch.process = spawn(config.beforeExec, config.beforeExecArgs || [], {cwd: branch.get('location')});
         branch.process.on('uncaughtException', function(e){
             err = e;
         });
         branch.process.on('exit', function(){
             if(err) {
-                branch.status = "beforeExec failed";
-                return console.log('error running beforeExec script for', branch.name, err);
+                branch.set({status: "beforeExec failed"});
+                return console.log('error running beforeExec script for', branch.get('name'), err);
             }
 
-            if(branch.running){
+            if(branch.get('running')){
                 startServer(branch, false);
             }
         });
     }else{
-        branch.status = "Spawning server";
+        branch.set({status: "Spawning server"});
 
         args = _(config.args).map(function(arg){
                     return arg
-                        .replace(/\$PORT\+1000/g, branch.port + 1000)
-                        .replace(/\$PORT/g, branch.port);
+                        .replace(/\$PORT\+1000/g, branch.get('port') + 1000)
+                        .replace(/\$PORT/g, branch.get('port'));
                 });
 
-        console.log('Spawning server for', branch.name + ':', config.exec, args);
+        console.log('Spawning server for', branch.get('name') + ':', config.exec, args);
 
         branch.out.write('server is talking:\n');
         branch.error.write('server is talking:\n');
 
         branch.process = spawn(config.exec, args, {
-            cwd: branch.location
+            cwd: branch.get('location')
         });
-        branch.status = "Running";
+        branch.set({status: "Running"});
     }
 
-    // Whether it's the beforeExec script or the main script, log errors the same way (ctx will help you spot beforeExec lines)
+    // Whether it's the beforeExec script or the main script, log errors the same way
     branch.process.stdout.on('data', function (data) {
         branch.out.write( data);
     });
     branch.process.stderr.on('data', function (data) {
-        console.log(branch.name + " ERROR:", data.toString());
+        console.log(branch.get('name') + " ERROR:", data.toString());
         branch.error.write(data);
     });
     branch.process.on('uncaughtException', function(err){
-        console.error('uncaught exception in', branch.name, err);
+        console.error('uncaught exception in', branch.get('name'), err);
         branch.error.write('uncaught exception:\n');
         branch.error.write(err + '\n');
-        branch.status = "Failed";
+        branch.set({status: "Failed"});
         branch.process.kill();
     });
     branch.process.on('exit', function (code) {
-        branch.status = branch.status === "Failed" ? "Failed" : "Quit unexpectedly";
+        branch.set({
+            status: branch.status === "Failed" ? "Failed" : "Quit unexpectedly"
+        });
         delete branch.process;
         branch.out.write('exited with code ' + code + '\n\n');
     });
 }
 
 function checkoutAndStartServer(branch, force){
-    var location = branch.location;
+    var location = branch.get('location');
 
     if(!path.existsSync(location)){
         fs.mkdirSync(location, '0766');
     }
 
-    branch.status = "Updating checkout";
+    branch.set({status: "Updating checkout"});
     branch.sync.checkout(branch, force, function(err, commitRef){
         if(err){
-            branch.status = "Checkout failed";
-            console.error(branch.name, 'could not checkout', err);
+            branch.set({status: "Checkout failed"});
+            console.error(branch.get('name'), 'could not checkout', err);
             return;
         }
-        branch.status = "Starting";
-        console.log('checked out ', branch.name, 'at commit', commitRef);
+        console.log('checked out ', branch.get('name'), 'at commit', commitRef);
 
-        branch.commitRef = commitRef;
+        branch.set({
+            status: "Starting",
+            commitRef:commitRef
+        });
 
         startServer(branch, true);
     });
 }
 
-exports.Branch = function(sync, globalConfig, options){
-    var branch = this,
-        location = makeCheckoutLocation(options.name);
+exports.Branch = Backbone.Model.extend({
 
-    branch.name = options.name;
-    branch.fullName = options.fullName || 'origin/' + options.name;
-    branch.sync = sync;
-    branch.config = _.extend(globalConfig, options.config || {});
-    branch.port = options.port;
-    branch.location = location;
-    branch.status = "Stopped";
-    branch.running = false;
+    defaults: {
+        status: 'Unknown',
+        running: false
+    },
 
-    branch.start = function(force){
-        branch.status = "Starting";
-        branch.running = true;
+    initialize: function(options){
+        var branch = this,
+            location = makeCheckoutLocation(options.name);
+
+        branch.sync = options.sync;
+
+        branch.set({
+            name: options.name,
+            fullName: options.fullName || 'origin/' + options.name,
+            config: _.extend(options.globalConfig, options.config || {}),
+            port: options.port,
+            location: location,
+            status: "Stopped",
+            running: false
+        });
+
+        _(this).bindAll('start', 'stop', 'restart');
+    },
+
+    start: function(force){
+        var branch = this,
+            location = branch.get('location');
+
+        branch.set({
+            status: "Starting",
+            running: true
+        });
         branch.out = branch.out || fs.createWriteStream(location + '.out.log', {flags: 'w'});
         branch.error = branch.error || fs.createWriteStream(location + '.error.log', {flags: 'w'});
 
         checkoutAndStartServer(branch, force);
-    };
-    branch.restart = function(){
+    },
+
+    restart: function(){
+        var branch = this;
+
         branch.stop(function(){
             branch.start(true);
         });
-    };
-    branch.stop = function(cb){
-        killServer(branch, function(){
-            branch.status = "Stopped";
+    },
+
+    stop: function(cb){
+        var branch = this;
+
+        killServer(this, function(){
+            branch.set({status: "Stopped"});
             if(branch.out){
                 branch.out.destroySoon();
                 delete branch.out;
@@ -158,5 +187,5 @@ exports.Branch = function(sync, globalConfig, options){
 
             (cb || emptyFn)();
         });
-    };
-};
+    }
+});

@@ -15,7 +15,7 @@ module.exports = function(options, branches){
     function getBranch(req, res, next){
         var name = req.params.branch;
 
-        req.params.branch = branches[name] || branches["origin/" + name];
+        req.params.branch = branches.get(name) || branches.get("origin/" + name);
 
         if(!req.params.branch){
             res.writeHead(404);
@@ -29,16 +29,14 @@ module.exports = function(options, branches){
             var hostAndPort = req.headers.host,
                 host = hostAndPort.split(':')[0],
                 port = hostAndPort.split(':')[1] || 80,
-                branch = 'origin/' + host.replace('.' + options.domain, ''),
-                serverKey = _(branches).chain()
-                        .keys()
-                        .detect(function(name){
-                            if(name.toLowerCase() === branch.toLowerCase()){
+                branchName = 'origin/' + host.replace(options.domain, ''),
+                serverKey = branchName ? branches
+                        .find(function(branch){
+                            if(branch.id.toLowerCase() === branchName.toLowerCase()){
                                 return true;
                             }
-                        })
-                        .value(),
-                server = branches[serverKey];
+                        }) : '',
+                server = serverKey ? branches.get(serverKey) : undefined;
 
             if(options.domain !== 'localhost' && server){
                 proxy.proxyRequest(req, res, {
@@ -53,22 +51,22 @@ module.exports = function(options, branches){
         express['static'](path.join(__dirname, 'public')),
         express.router(function(router){
             router.get('/', function(req, res){
-                var data = _(branches).reduce(function(memo, branch){
-                    var safeName = branch.name.replace(/\//, '-'),
+                var data = branches.reduce(function(memo, branch){
+                    var safeName = branch.get('name').replace(/\//, '-'),
                         domain = "http://";
 
                     if(options.domain === 'localhost'){
-                        domain += 'localhost:' + branch.port + options.root;
+                        domain += 'localhost:' + branch.get('port') + options.root;
                     }else{
                         domain += safeName + '.' + options.domain + ':' + options.port + options.root;
                     }
                     var data = {
-                        name: branch.name,
+                        name: branch.get('name'),
                         domain: domain,
-                        status: (branch.status || "Unknown"),
-                        statusClass: (branch.status || "unknown").toLowerCase().replace(/\s/, '')
+                        status: branch.get('status'),
+                        statusClass: branch.get('status').toLowerCase().replace(/\s/, '')
                     };
-                    if(branch.running){
+                    if(branch.get('running')){
                         memo.runningBranches.push(data);
                     }else{
                         memo.stoppedBranches.push(data);
@@ -86,10 +84,10 @@ module.exports = function(options, branches){
             router.get('/:branch/log', getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
-                git.log('-n20 "' + branch.fullName + '" --', function(err, output){
+                git.log('-n20 "' + branch.id + '" --', function(err, output){
                     res.render('log.template', {
-                        title: "Git log for " + branch.name,
-                        branch: branch.name,
+                        title: "Git log for " + branch.get('name'),
+                        branch: branch.get('name'),
                         output: output
                     });
                 });
@@ -97,10 +95,10 @@ module.exports = function(options, branches){
             router.get('/:branch/out', getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
-                fs.readFile(path.join(process.cwd(), branch.name + ".out.log"), function(err, output){
+                fs.readFile(path.join(process.cwd(), branch.get('name') + ".out.log"), function(err, output){
                     res.render('output.template', {
-                        title: "Output stream for " + branch.name,
-                        branch: branch.name,
+                        title: "Output stream for " + branch.get('name'),
+                        branch: branch.get('name'),
                         output: output
                     });
                 });
@@ -108,10 +106,10 @@ module.exports = function(options, branches){
             router.get('/:branch/errors', getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
-                fs.readFile(path.join(process.cwd(), branch.name + ".error.log"), function(err, output){
+                fs.readFile(path.join(process.cwd(), branch.get('name') + ".error.log"), function(err, output){
                     res.render('errors.template', {
-                        title: "Error stream for " + branch.name,
-                        branch: branch.name,
+                        title: "Error stream for " + branch.get('name'),
+                        branch: branch.get('name'),
                         output: output
                     });
                 });

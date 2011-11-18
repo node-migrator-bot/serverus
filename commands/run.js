@@ -6,7 +6,12 @@ var _ = require('underscore'),
     Config = require('config'),
     Git = require('git'),
     server = require('../web/server'),
+    Backbone = require('backbone'),
     Branch = require('../branch').Branch;
+
+function getShortBranchName(fullBranchName){
+    return fullBranchName.split('/').slice(1).join('/');
+}
 
 module.exports = function run(args){
     var config = new Config(),
@@ -14,7 +19,7 @@ module.exports = function run(args){
         git = new Git({dir: repoDir}),
         sync, monitor,
         currentPort = 8124,
-        branches = {};
+        branches = new Backbone.Collection();
 
     cli.setArgv(['run'].concat(args));
     var options = cli.parse({
@@ -35,18 +40,30 @@ module.exports = function run(args){
     });
     currentPort = options.startingPort;
 
-    git.branches('-r', function(err, gitBranches){
-        console.log('found', gitBranches.length, 'branches');
-        _(gitBranches).sortBy(function(branchName){
-            return branchName;
-        }).forEach(function(fullBranchName){
-            var branchName = fullBranchName.split('/').slice(1).join('/'),
-                branch = branches[fullBranchName] = new Branch(sync, config, {
+    function getOrMakeBranch(fullBranchName){
+        var branchName = getShortBranchName(fullBranchName),
+            branch = branches.get(fullBranchName);
+
+        if(!branch){
+            branch = new Branch({
+                    id: fullBranchName,
+                    sync: sync,
                     name: branchName,
                     fullName: fullBranchName,
                     port: currentPort++,
+                    globalConfig: config,
                     config: config[branchName]
                 });
+            branches.add(branch);
+        }
+        return branch;
+    }
+
+    git.branches('-r', function(err, gitBranches){
+        console.log('found', gitBranches.length, 'branches');
+        _(gitBranches).forEach(function(fullBranchName){
+            var branchName = getShortBranchName(fullBranchName),
+                branch = getOrMakeBranch(fullBranchName);
 
             if(config.branches.indexOf(branchName) > -1){
                 branch.start();
@@ -59,20 +76,24 @@ module.exports = function run(args){
 
     monitor = setInterval(function(){
         git.fetch(function(err, output){
-            _(branches).each(function(branch, branchName){
-                if(!branch.running){
-                    return;
-                }
+            git.branches('-r', function(err, gitBranches){
+                _(gitBranches).each(function(fullBranchName){
+                    var branch = getOrMakeBranch(fullBranchName);
 
-                git.log('-n1 --pretty=oneline "' + branchName + '" --', function(err, output){
-                    var branchCommitRef = output.split(' ')[0],
-                        commitRef = branch.commitRef;
-
-                    if(branchCommitRef != commitRef){
-                        console.log(branch.name, 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
-
-                        branch.restart();
+                    if(!branch.get('running')){
+                        return;
                     }
+
+                    git.log('-n1 --pretty=oneline "' + branch.id + '" --', function(err, output){
+                        var branchCommitRef = output.split(' ')[0],
+                            commitRef = branch.get('commitRef');
+
+                        if(branchCommitRef != commitRef){
+                            console.log(branch.get('name'), 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
+
+                            branch.restart();
+                        }
+                    });
                 });
             });
         });
@@ -87,16 +108,19 @@ module.exports = function run(args){
             return process.exit(1);
         }
 
+        if(branches.size() === 0){
+            return process.exit(0);
+        }
+
         exiting = true;
         console.log('killing branches, ctrl-c again will exit without cleaning up');
-        _(branches).each(function(branch, key){
+        branches.each(function(branch){
             process.stdin.resume();
 
             branch.stop(function(){
-                var remainingBranches = _(branches).keys().length;
-                delete branches[key];
+                branches.remove(branch);
 
-                if(--remainingBranches === 0){
+                if(branches.size() === 0){
                     console.log('all processes cleaned up, exiting');
                     process.exit(0);
                 }
