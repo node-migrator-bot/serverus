@@ -16,7 +16,7 @@ module.exports = function run(args){
         git = new Git({dir: repoDir}),
         sync, monitor,
         currentPort = 8124,
-        runningServers = {};
+        branches = {};
 
     cli.setArgv(['run'].concat(args));
     var options = cli.parse({
@@ -38,7 +38,7 @@ module.exports = function run(args){
     currentPort = options.startingPort;
 
     function getServer(branch, location){
-        var server = runningServers[branch];
+        var server = branches[branch];
 
         function killServer(){
             console.log('killing server on port', server.port);
@@ -61,7 +61,7 @@ module.exports = function run(args){
         }
 
         if(!server){
-            server = runningServers[branch] = {
+            server = branches[branch] = {
                 port: currentPort++,
                 location: location,
                 status: "Starting",
@@ -171,16 +171,16 @@ module.exports = function run(args){
 
     console.log('spawning serverus\'s server on ', 'http://' + options.domain + (options.port === 80 ? '' : ':' + options.port));
     server(options, {
-        branches: runningServers
+        branches: branches
     }).listen(options.port);
 
     monitor = setInterval(function(){
         git.fetch(function(err, output){
-            _.keys(runningServers).forEach(function(branch){
+            _.keys(branches).forEach(function(branch){
                 git.log('-n1 --pretty=oneline "' + branch + '" --', function(err, output){
-                    var server = runningServers[branch],
+                    var server = branches[branch],
                         branchCommitRef = output.split(' ')[0],
-                        commitRef = runningServers[branch].commitRef;
+                        commitRef = branches[branch].commitRef;
 
                     if(branchCommitRef != commitRef){
                         console.log(branch, 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
