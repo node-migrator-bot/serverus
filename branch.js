@@ -35,6 +35,10 @@ function startServer(branch, runBeforeExec){
     if(runBeforeExec && config.beforeExec){
         console.log('Running beforeExec script for', branch.name);
         branch.status = "Running beforeExec";
+
+        branch.out.write('beforeExec is talking:\n');
+        branch.error.write('beforeExec is talking:\n');
+
         branch.process = spawn(config.beforeExec, config.beforeExecArgs || [], {cwd: branch.location});
         branch.process.on('uncaughtException', function(e){
             err = e;
@@ -49,42 +53,46 @@ function startServer(branch, runBeforeExec){
                 startServer(branch, false);
             }
         });
-        return;
+    }else{
+        branch.status = "Spawning server";
+
+        args = _(config.args).map(function(arg){
+                    return arg
+                        .replace(/\$PORT\+1000/g, branch.port + 1000)
+                        .replace(/\$PORT/g, branch.port);
+                });
+
+        console.log('Spawning server for', branch.name + ':', config.exec, args);
+
+        branch.out.write('server is talking:\n');
+        branch.error.write('server is talking:\n');
+
+        branch.process = spawn(config.exec, args, {
+            cwd: branch.location
+        });
+        branch.status = "Running";
     }
-    branch.status = "Spawning server";
 
-    args = _(config.args).map(function(arg){
-                return arg
-                    .replace(/\$PORT\+1000/g, branch.port + 1000)
-                    .replace(/\$PORT/g, branch.port);
-            });
-
-    console.log('Spawning server for', branch.name + ':', config.exec, args);
-
-    branch.process = spawn(config.exec, args, {
-        cwd: branch.location
-    });
-
+    // Whether it's the beforeExec script or the main script, log errors the same way (ctx will help you spot beforeExec lines)
     branch.process.stdout.on('data', function (data) {
-        branch.out.write(data);
+        branch.out.write( data);
     });
     branch.process.stderr.on('data', function (data) {
-        console.log(branch.name + ":", data.toString());
+        console.log(branch.name + " ERROR:", data.toString());
         branch.error.write(data);
     });
     branch.process.on('uncaughtException', function(err){
         console.error('uncaught exception in', branch.name, err);
-        branch.error.write('uncaught exception:');
-        branch.error.write(err);
+        branch.error.write('uncaught exception:\n');
+        branch.error.write(err + '\n');
         branch.status = "Failed";
         branch.process.kill();
     });
     branch.process.on('exit', function (code) {
         branch.status = branch.status === "Failed" ? "Failed" : "Quit unexpectedly";
         delete branch.process;
-        branch.out.write('exited with code ' + code);
+        branch.out.write('exited with code ' + code + '\n\n');
     });
-    branch.status = "Running";
 }
 
 function checkoutAndStartServer(branch, force){
@@ -138,6 +146,7 @@ exports.Branch = function(sync, globalConfig, options){
     };
     branch.stop = function(cb){
         killServer(branch, function(){
+            branch.status = "Stopped";
             if(branch.out){
                 branch.out.destroySoon();
                 delete branch.out;
