@@ -22,11 +22,11 @@
     "node": ">=0.4.0"
   },
   "dependencies": {
-    "underscore": "1.2.0",
-    "rimraf": "1.0.8",
-    "http-proxy": "0.7.3",
-    "cli": "0.3.8",
-    "connect": ">1.7"
+    "underscore": ">1.2.0",
+    "rimraf": ">1.0.8",
+    "http-proxy": ">0.7.3",
+    "cli": ">0.3.8",
+    "express": ">2.5"
   },
   "devDependencies": {}
 }

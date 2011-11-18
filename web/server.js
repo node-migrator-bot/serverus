@@ -1,5 +1,5 @@
 'use strict';
-var connect =require('connect'),
+var express =require('express'),
     _ = require('underscore'),
     httpProxy = require('http-proxy'),
     fs = require('fs'),
@@ -12,7 +12,7 @@ module.exports = function(options, branches){
         repoDir = path.join(process.cwd(), '_repo/'),
         git = new Git({dir: repoDir});
 
-    return connect.createServer(
+    return express.createServer(
         function(req, res, next){
             var hostAndPort = req.headers.host,
                 host = hostAndPort.split(':')[0],
@@ -37,7 +37,7 @@ module.exports = function(options, branches){
                 next();
             }
         },
-        connect.router(function(router){
+        express.router(function(router){
             router.get('/', function(req, res){
                 function makeLink(branch){
                     var safeName = branch.name.replace(/\//, '-')[1],
