@@ -9,16 +9,15 @@ var _ = require('underscore'),
 
 function killServer(branch, cb){
     cb = cb || emptyFn;
-    branch.set({running: false});
-
     if(!branch.process){
+        branch.set({running: false});
         return cb();
     }
     console.log('killing server for', branch.get('name'), 'on port', branch.get('port'));
 
     branch.process.on('exit', function(){
         console.log('server on', branch.get('port'), 'exited');
-
+        branch.set({running: false});
         cb();
     });
     process.kill(branch.process.pid);

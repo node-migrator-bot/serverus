@@ -7,7 +7,10 @@ var _ = require('underscore'),
     Git = require('git'),
     server = require('../web/server'),
     Backbone = require('backbone'),
-    Branch = require('../branch').Branch;
+    Branch = require('../branch').Branch,
+    Branches = Backbone.Collection.extend({
+            Model: Branch
+        });
 
 function getShortBranchName(fullBranchName){
     return fullBranchName.split('/').slice(1).join('/');
@@ -19,7 +22,7 @@ module.exports = function run(args){
         git = new Git({dir: repoDir}),
         sync, monitor,
         currentPort = 8124,
-        branches = new Backbone.Collection();
+        branches = new Branches();
 
     cli.setArgv(['run'].concat(args));
     var options = cli.parse({
@@ -54,6 +57,7 @@ module.exports = function run(args){
                     globalConfig: config,
                     config: config[branchName]
                 });
+            branch.id = fullBranchName;
             branches.add(branch);
         }
         return branch;
@@ -86,12 +90,12 @@ module.exports = function run(args){
 
                     git.log('-n1 --pretty=oneline "' + branch.id + '" --', function(err, output){
                         var branchCommitRef = output.split(' ')[0],
-                            commitRef = branch.get('commitRef');
+                            commitRef = branch.get('commitRef') || '';
 
                         if(branchCommitRef != commitRef){
-                            console.log(branch.get('name'), 'has changed (' + commitRef + ' vs ' + branchCommitRef + '), updating');
+                            console.log(branch.get('name'), 'has changed (' + commitRef, 'vs', branchCommitRef + '),', 'updating');
 
-                            branch.set('commitRef', commitRef);
+                            branch.set({commitRef: commitRef});
                             branch.restart();
                         }
                     });
@@ -115,17 +119,21 @@ module.exports = function run(args){
 
         exiting = true;
         console.log('killing branches, ctrl-c again will exit without cleaning up');
-        branches.each(function(branch){
-            process.stdin.resume();
+        process.stdin.resume();
 
+        function stopBranch(branch){
             branch.stop(function(){
                 branches.remove(branch);
 
                 if(branches.size() === 0){
                     console.log('all processes cleaned up, exiting');
                     process.exit(0);
+                }else{
+                    stopBranch(branches.at(0));
                 }
             });
-        });
+        }
+
+        stopBranch(branches.at(0));
     });
 };

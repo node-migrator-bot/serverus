@@ -2,6 +2,7 @@
 var express =require('express'),
     _ = require('underscore'),
     httpProxy = require('http-proxy'),
+    socketio = require('socket.io'),
     fs = require('fs'),
     url = require('url'),
     path = require('path'),
@@ -61,6 +62,7 @@ module.exports = function(options, branches){
                         domain += safeName + '.' + options.domain + ':' + options.port + options.root;
                     }
                     var data = {
+                        id: branch.id,
                         name: branch.get('name'),
                         domain: domain,
                         status: branch.get('status'),
@@ -78,6 +80,8 @@ module.exports = function(options, branches){
                 });
 
                 data.title = "Running servers";
+
+                data.toJSON = JSON.stringify(branches);
 
                 res.render('home.template', data);
             });
@@ -143,6 +147,21 @@ module.exports = function(options, branches){
     app.set('view options', {
         layout: true
     });
+
+    var io = socketio.listen(app),
+        frontend = io.of('branches')
+            .on('connection', function(socket){
+                branches.bind('add', function(model){
+                    socket.broadcast.emit('create', model.toJSON());
+                });
+                branches.bind('change', function(model){
+                    socket.broadcast.emit('update', model.toJSON());
+                });
+                branches.bind('remove', function(model){
+                    socket.broadcast.emit('delete', model.toJSON());
+                });
+            });
+    io.set('log level', 1);
 
     return app;
 };

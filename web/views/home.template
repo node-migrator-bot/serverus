@@ -2,7 +2,7 @@
     <h1>Running servers</h1>
     <ul class="branches">
         {{#runningBranches}}
-        <li class="branch">
+        <li class="branch" data-id="{{id}}">
             <a href="{{domain}}" class="name">{{name}}</a>
             <span class="status {{statusClass}}">{{status}}</span>
             <form action="/{{name}}/stop" method="POST">
@@ -23,7 +23,7 @@
     <h1>Stopped servers</h1>
     <ul class="branches">
         {{#stoppedBranches}}
-        <li class="branch">
+        <li class="branch" data-id="{{id}}">
             <span class="name">{{name}}</span>
             <span class="status {{statusClass}}">{{status}}</span>
             <form action="/{{name}}/start" method="POST">
@@ -34,3 +34,58 @@
         {{/stoppedBranches}}
     </ul>
 </section>
+
+<script src="http://code.jquery.com/jquery-1.7.min.js"></script>
+
+<script src="/scripts/underscore.js"></script>
+<script src="/scripts/backbone.js"></script>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+    var Branches = Backbone.Collection.extend({
+        }),
+        branches = new Branches({{toJSON}});
+
+    branches.bind('change', function(model){
+        var li = $('li.branch[data-id="' + model.id + '"]');
+
+        li.find('.status').text(model.get('status')).attr('class', 'status ' + 
+                model.get('status').toLowerCase().replace(/\s/, ''));
+
+        if(model.get('running')){
+            $('#runningServers .branches').append(li);
+        }else{
+            $('#stoppedServers .branches').append(li);
+        }
+    });
+    branches.bind('remove', function(model){
+        $('li.branch[data-id="' + model.id + '"]').remove();
+    });
+
+    var socket = io.connect().of('branches');
+    socket.on('create', function(model){
+        branches.add(model);
+    });
+    socket.on('update', function(model){
+        var savedModel = branches.get(model.id);
+        if(!savedModel){
+            branches.add(model);
+        }else{
+            savedModel.set(model);
+        }
+    });
+    socket.on('delete', function(model){
+        var branch = branches.get(model.id);
+
+        if(branch){
+            branches.remove(branch);
+        }
+    });
+
+    $('form').submit(function(e){
+        e.preventDefault();
+
+        $.post($(this).attr('action'));
+    });
+</script>
