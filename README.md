@@ -24,7 +24,13 @@ You probably want to check your settings at this point - edit serverus.json:
         "exec": "node",
         // Arguments to run the executable with
         // the string "$PORT" is special and will be replaced with the port that serverus wants this instance to run on
-        "args": ["server.js", "--port $PORT"]
+        "args": ["server.js", "--port=$PORT"],
+        // Branches to run on startup
+        "branches": ["master"],
+        // Config overrides for various branch configuration
+        "master": {
+            "args": ["server.js", "--port=80"]
+        }
     }
 
 When you're ready to serve your app, run:
