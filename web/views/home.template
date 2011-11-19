@@ -1,10 +1,12 @@
 <script src="http://code.jquery.com/jquery-1.7.min.js"></script>
+<script src="/lib/jquery.tools.min.js"></script>
 
 <script src="/lib/mustache.js"></script>
 <script src="/lib/underscore.js"></script>
 <script src="/lib/backbone.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 
+<script src="/lib/jquery.showModal.js"></script>
 <script src="/src/BranchesView.js"></script>
 
 <script>
@@ -36,13 +38,5 @@
         if(branch){
             branches.remove(branch);
         }
-    });
-
-    $('form').submit(function(e){
-        e.preventDefault();
-
-        $.post($(this).attr('action'));
-
-        return false;
     });
 </script>

@@ -1,12 +1,36 @@
 window.BranchesView = (function(Backbone, Mustache){
     'use strict';
     return Backbone.View.extend({
+
+        events: {
+            'submit form': 'ajaxSubmit',
+            'click a:not(.name)': 'modalWindow'
+        },
+
         initialize: function(){
             _(this).bindAll('render');
 
             this.model.bind('add', this.render);
             this.model.bind('remove', this.render);
             this.model.bind('change', this.render);
+        },
+
+        ajaxSubmit: function(e){
+            $.post($(e.target).closest('form').attr('action'));
+
+            return false;
+        },
+
+        modalWindow: function(e){
+            var href = $(e.target).attr('href'),
+                $el = $('<div></div>');
+            
+            $el.load(href).showModal({
+                onClose: function(){
+                    $el.remove();
+                }
+            });
+            return false;
         },
 
         render: function(){

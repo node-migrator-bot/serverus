@@ -21,3 +21,47 @@ html,body{
 .status.quitunexpectedly,.status.checkoutfailed{
     color:red;
 }
+.modalPlaceholder{
+    width:75%;
+    height:75%;
+    border:2px solid #CCC;
+    background-color:#FFF;
+    border-radius:4px;
+}
+    .modalPlaceholder > a.close{
+        position:absolute;
+        top:8px;
+        right:0;
+        width:20px;
+        height:20px;
+        cursor: pointer;
+        z-index: 100;
+    }
+    .modalPlaceholder > a.close:after{
+        content: 'x';
+    }
+    .modalPlaceholder > div{
+        height:100%;
+        width:100%;
+    }
+    .modalPlaceholder > div h1{
+        position:absolute;
+        top:0;
+        left:0;
+        right:0;
+        margin:0;
+        font-size:16px;
+        line-height:16px;
+        padding:10px;
+        background-color:#CCC;
+    }
+    .modalPlaceholder > div pre{
+        position:absolute;
+        top:36px;
+        left:0;
+        right:0;
+        bottom:0;
+        padding:10px;
+        margin:0;
+        overflow-y: auto;
+    }

@@ -14,13 +14,13 @@ module.exports = function(options, branches){
         git = new Git({dir: repoDir});
 
     function getBranch(req, res, next){
-        var name = req.params.branch;
+        var name = req.params.branch || req.params[0];
 
         req.params.branch = branches.get(name) || branches.get("origin/" + name);
 
         if(!req.params.branch){
             res.writeHead(404);
-            return res.end("Branch not found");
+            return res.end("Branch " + name + " not found");
         }
         next();
     }
@@ -59,7 +59,7 @@ module.exports = function(options, branches){
 
                 res.render('home.template', data);
             });
-            router.get('/:branch/log', getBranch, function(req, res, next){
+            router.get(/^\/(.*)\/log$/, getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
                 git.log('-n20 "' + branch.id + '" --', function(err, output){
@@ -70,7 +70,7 @@ module.exports = function(options, branches){
                     });
                 });
             });
-            router.get('/:branch/out', getBranch, function(req, res, next){
+            router.get(/^\/(.*)\/out$/, getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
                 fs.readFile(path.join(process.cwd(), branch.get('name') + ".out.log"), function(err, output){
@@ -81,7 +81,7 @@ module.exports = function(options, branches){
                     });
                 });
             });
-            router.get('/:branch/errors', getBranch, function(req, res, next){
+            router.get(/^\/(.*)\/errors$/, getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
                 fs.readFile(path.join(process.cwd(), branch.get('name') + ".error.log"), function(err, output){
@@ -92,21 +92,21 @@ module.exports = function(options, branches){
                     });
                 });
             });
-            router.post('/:branch/start', getBranch, function(req, res, next){
+            router.post(/^\/(.*)\/start$/, getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
                 branch.start();
 
                 res.redirect('/');
             });
-            router.post('/:branch/restart', getBranch, function(req, res, next){
+            router.post(/^\/(.*)\/restart$/, getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
                 branch.restart();
 
                 res.redirect('/');
             });
-            router.post('/:branch/stop', getBranch, function(req, res, next){
+            router.post(/^\/(.*)\/stop$/, getBranch, function(req, res, next){
                 var branch = req.params.branch;
 
                 branch.stop();
