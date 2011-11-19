@@ -52,36 +52,10 @@ module.exports = function(options, branches){
         express['static'](path.join(__dirname, 'public')),
         express.router(function(router){
             router.get('/', function(req, res){
-                var data = branches.reduce(function(memo, branch){
-                    var safeName = branch.get('name').replace(/\//, '-'),
-                        domain = "http://";
-
-                    if(options.domain === 'localhost'){
-                        domain += 'localhost:' + branch.get('port') + options.root;
-                    }else{
-                        domain += safeName + '.' + options.domain + ':' + options.port + options.root;
-                    }
-                    var data = {
-                        id: branch.id,
-                        name: branch.get('name'),
-                        domain: domain,
-                        status: branch.get('status'),
-                        statusClass: branch.get('status').toLowerCase().replace(/\s/, '')
-                    };
-                    if(branch.get('running')){
-                        memo.runningBranches.push(data);
-                    }else{
-                        memo.stoppedBranches.push(data);
-                    }
-                    return memo;
-                }, {
-                    runningBranches: [],
-                    stoppedBranches: []
-                });
-
-                data.title = "Running servers";
-
-                data.toJSON = JSON.stringify(branches);
+                var data = {
+                    title: "Running servers",
+                    toJSON: JSON.stringify(branches)
+                };
 
                 res.render('home.template', data);
             });
