@@ -42,5 +42,7 @@
         e.preventDefault();
 
         $.post($(this).attr('action'));
+
+        return false;
     });
 </script>

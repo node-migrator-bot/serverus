@@ -47,6 +47,9 @@ window.BranchesView = (function(Backbone, Mustache){
                 stoppedBranches: []
             });
 
+            data.showRunningBranches = !!data.runningBranches.length;
+            data.showStoppedBranches = !!data.stoppedBranches.length;
+
             $(this.el).html(Mustache.to_html(this.template, data));
         }
     });
