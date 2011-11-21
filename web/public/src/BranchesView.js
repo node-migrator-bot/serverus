@@ -24,7 +24,7 @@ window.BranchesView = (function(Backbone, Mustache){
         modalWindow: function(e){
             var href = $(e.target).attr('href'),
                 $el = $('<div></div>');
-            
+
             $el.load(href).showModal({
                 onClose: function(){
                     $el.remove();
@@ -48,7 +48,7 @@ window.BranchesView = (function(Backbone, Mustache){
                 var safeName = branch.get('name').replace(/\//, '-'),
                     domain = "http://";
 
-                if(self.domain === 'localhost'){
+                if(self.options.domain === 'localhost'){
                     domain += 'localhost:' + branch.get('port') + self.options.root;
                 }else{
                     domain += safeName + '.' + self.options.domain + ':' + self.options.port + self.options.root;

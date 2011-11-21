@@ -43,11 +43,14 @@ function startServer(branch, runBeforeExec){
         branch.process.on('uncaughtException', function(e){
             err = e;
         });
-        branch.process.on('exit', function(){
+        branch.process.on('exit', function(code){
             if(err) {
                 branch.set({status: "beforeExec failed"});
                 return console.log('error running beforeExec script for', branch.get('name'), err);
             }
+            branch.set({status: "Starting"});
+            delete branch.process;
+            branch.out.write('exited with code ' + code + '\n\n');
 
             if(branch.get('running')){
                 startServer(branch, false);
@@ -71,6 +74,14 @@ function startServer(branch, runBeforeExec){
             cwd: branch.get('location')
         });
         branch.set({status: "Running"});
+
+        branch.process.on('exit', function (code) {
+            branch.set({
+                status: branch.status === "Failed" ? "Failed" : "Quit unexpectedly"
+            });
+            delete branch.process;
+            branch.out.write('exited with code ' + code + '\n\n');
+        });
     }
 
     // Whether it's the beforeExec script or the main script, log errors the same way
@@ -87,13 +98,6 @@ function startServer(branch, runBeforeExec){
         branch.error.write(err + '\n');
         branch.set({status: "Failed"});
         branch.process.kill();
-    });
-    branch.process.on('exit', function (code) {
-        branch.set({
-            status: branch.status === "Failed" ? "Failed" : "Quit unexpectedly"
-        });
-        delete branch.process;
-        branch.out.write('exited with code ' + code + '\n\n');
     });
 }
 

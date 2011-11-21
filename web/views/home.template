@@ -14,9 +14,12 @@
         }),
         branches = new Branches({{toJSON}}),
         branchesView = new BranchesView({
-            model: branches
+            model: branches,
+            domain: '{{domain}}',
+            port: {{port}},
+            root: '{{webRoot}}'
         });
-    
+
     $('body').append(branchesView.el);
     branchesView.render();
 

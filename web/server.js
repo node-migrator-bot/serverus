@@ -29,21 +29,19 @@ module.exports = function(options, branches){
         function(req, res, next){
             var hostAndPort = req.headers.host,
                 host = hostAndPort.split(':')[0],
-                port = hostAndPort.split(':')[1] || 80,
-                branchName = 'origin/' + host.replace(options.domain, ''),
-                serverKey = branchName ? branches
-                        .find(function(branch){
-                            if(branch.id.toLowerCase() === branchName.toLowerCase()){
-                                return true;
-                            }
-                        }) : '',
-                server = serverKey ? branches.get(serverKey) : undefined;
+                branchName = 'origin/' + host.replace('.' + options.domain, ''),
+                branch = branches.get(branchName);
 
-            if(options.domain !== 'localhost' && server){
-                proxy.proxyRequest(req, res, {
-                    host: 'localhost',
-                    port: server.port
-                });
+            if(options.domain !== 'localhost' && branch){
+                if(branch.get('running')){
+                    proxy.proxyRequest(req, res, {
+                        host: 'localhost',
+                        port: branch.get('port')
+                    });
+                }else{
+                    res.writeHead(404);
+                    res.end("Branch is not running yet");
+                }
             }else{
                 next();
             }
@@ -54,6 +52,9 @@ module.exports = function(options, branches){
             router.get('/', function(req, res){
                 var data = {
                     title: "Running servers",
+                    domain: options.domain,
+                    port: options.port,
+                    webRoot: options.root,
                     toJSON: JSON.stringify(branches)
                 };
 
