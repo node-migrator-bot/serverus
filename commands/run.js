@@ -27,7 +27,7 @@ module.exports = function run(args){
     cli.setArgv(['run'].concat(args));
     var options = cli.parse({
         port: ['p', 'Port for serverus to listen on', 'number', config.port || 8123],
-        startingPort: ['s', 'Port to start branch servers listening on', 'number', config.startingPort || 8124],
+        startingPort: ['s', 'Port to start branch servers listening on', 'number', config.startingPort || (config.port ? config.port + 1 : 8124)],
         root: ['r', 'Root URL of server instances, affects the URL linked to from the serverus server', 'string', config.root || '/'],
         domain: ['d', 'The domain name to serve branches up as subdomains of', 'string', config.domain || 'localhost'],
         force: ['', 'Force run, remove __serverus.lock file from checkout if necessary', 'bool', false]
