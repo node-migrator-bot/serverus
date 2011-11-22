@@ -9,15 +9,15 @@
   "licenses": [
     {
      "type": "MIT",
-     "url": "http://www.opensource.org/licenses/mit-license.php",
+     "url": "http://www.opensource.org/licenses/mit-license.php"
     }
-  ]
+  ],
   "maintainers": [
     {
       "name": "Steve Mason",
       "email": "stevem@brandwatch.com"
     }
-  ]
+  ],
   "main": "serverus",
   "bin": {
     "Serverus": "./serverus"
