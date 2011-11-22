@@ -6,7 +6,7 @@ var express =require('express'),
     fs = require('fs'),
     url = require('url'),
     path = require('path'),
-    Git = require('git');
+    Git = require('../lib/git');
 
 module.exports = function(options, branches){
     var proxy = new httpProxy.RoutingProxy(),

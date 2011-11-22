@@ -2,12 +2,12 @@
 var _ = require('underscore'),
     path = require('path'),
     cli = require('cli'),
-    Sync = require('sync'),
-    Config = require('config'),
-    Git = require('git'),
-    server = require('../web/server'),
     Backbone = require('backbone'),
-    Branch = require('../branch').Branch,
+    Sync = require('../lib/sync'),
+    Config = require('../lib/config'),
+    Git = require('../lib/git'),
+    server = require('../web/server'),
+    Branch = require('../lib/branch').Branch,
     Branches = Backbone.Collection.extend({
             Model: Branch
         });

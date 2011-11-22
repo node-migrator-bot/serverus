@@ -1,13 +1,18 @@
 'use strict';
 var fs = require('fs'),
     path = require('path'),
-    Config = require('config'),
-    Git = require('git');
+    Config = require('../lib/config'),
+    Git = require('../lib/git');
 
 module.exports = function init(args){
-    var gitRepo = args[0],
+    if(!args[0]){
+        console.error('Please git the path/url to a (local or remote) git repository' + process.cwd());
+        process.exit(1);
+    }
+
+    var gitRepo = args[0] || '',
         config = new Config(),
-        dir =process.cwd(),
+        dir = process.cwd(),
         git = new Git({dir: dir}),
         dirName =  (args[1] || gitRepo.match(/[\/\:]([^\/\:]*)$/)[1].replace('.git', '')) + '.serverus',
         initPath = path.join(dir, dirName),
