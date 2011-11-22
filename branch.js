@@ -86,7 +86,7 @@ function startServer(branch, runBeforeExec){
 
     // Whether it's the beforeExec script or the main script, log errors the same way
     branch.process.stdout.on('data', function (data) {
-        branch.out.write( data);
+        branch.out.write(data);
     });
     branch.process.stderr.on('data', function (data) {
         console.log(branch.get('name') + " ERROR:", data.toString());
@@ -97,7 +97,7 @@ function startServer(branch, runBeforeExec){
         branch.error.write('uncaught exception:\n');
         branch.error.write(err + '\n');
         branch.set({status: "Failed"});
-        branch.process.kill();
+        process.kill(branch.process.pid);
     });
 }
 
