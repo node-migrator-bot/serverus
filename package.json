@@ -1,25 +1,24 @@
 {
   "name": "serverus",
   "description": "Git branch server",
-  "version": "0.4.2",
+  "version": "0.4.5",
   "repository": {
     "type": "git",
     "url": "git://github.com/BrandwatchLtd/serverus.git"
   },
   "licenses": [
     {
-     "type": "MIT",
-     "url": "http://www.opensource.org/licenses/mit-license.php"
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/mit-license.php"
     }
   ],
   "maintainers": [
-    {
-      "name": "Steve Mason",
-      "email": "stevem@brandwatch.com"
-    }
+    "Steve Mason <stevem@brandwatch.com>"
   ],
   "main": "serverus",
-  "bin": "./serverus",
+  "bin": {
+    "serverus": "./serverus"
+  },
   "preferGlobal": true,
   "directories": {
     "lib": "."
