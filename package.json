@@ -6,7 +6,18 @@
     "type": "git",
     "url": "git://github.com/BrandwatchLtd/serverus.git"
   },
-  "author": "Steve Mason <stevem@brandwatch.com>",
+  "licenses": [
+    {
+     "type": "MIT",
+     "url": "http://www.opensource.org/licenses/mit-license.php",
+    }
+  ]
+  "maintainers": [
+    {
+      "name": "Steve Mason",
+      "email": "stevem@brandwatch.com"
+    }
+  ]
   "main": "serverus",
   "bin": {
     "Serverus": "./serverus"
