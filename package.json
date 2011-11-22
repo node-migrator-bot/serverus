@@ -1,5 +1,5 @@
 {
-  "name": "Serverus",
+  "name": "serverus",
   "description": "Git branch server",
   "version": "0.4.2",
   "repository": {
@@ -19,9 +19,8 @@
     }
   ],
   "main": "serverus",
-  "bin": {
-    "Serverus": "./serverus"
-  },
+  "bin": "./serverus",
+  "preferGlobal": true,
   "directories": {
     "lib": "."
   },
