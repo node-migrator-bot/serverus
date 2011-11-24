@@ -24,8 +24,7 @@
     "lib": "."
   },
   "scripts": {
-    "test": "expresso",
-    "start": "node server.js"
+    "test": "expresso"
   },
   "engines": {
     "node": ">=0.4"
