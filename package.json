@@ -1,7 +1,7 @@
 {
   "name": "serverus",
   "description": "Git branch server",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "repository": {
     "type": "git",
     "url": "git://github.com/BrandwatchLtd/serverus.git"
