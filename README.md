@@ -26,7 +26,7 @@ You probably want to update your settings at this point - edit serverus.json:
         "excludeFromDeploy": [],
         // Branches to run on startup (you can run others on demand)
         "branches": ["master"],
-        // Config overrides for various branch configuration
+        // Config overrides for various branches
         "master": {
             "args": ["server.js", "--port=80"]
         }
@@ -46,14 +46,14 @@ You can use the `--help` flag to get commandline options for `serverus run`:
     Usage:
       run [OPTIONS] [ARGS]
 
-    Options: 
+    Options:
       -p, --port [NUMBER]    Port for serverus to listen on (Default is 8123)
-      -s, --startingPort [NUMBER]Port to start branch servers listening on (Default is 8124)
-      -r, --root [STRING]    Root URL of server instances, affects the URL linked 
+      -s, --startingPort [NUMBER]Port to start branch servers listening on (Default is 8124, or port+1)
+      -r, --root [STRING]    Root URL of server instances, affects the URL linked
                              to from the serverus server  (Default is /)
       -d, --domain [STRING]  The domain name to serve branches up as subdomains of  (Default is localhost)
-          --force BOOL       Force run, remove __serverus.lock file from 
-                             checkout if necessary 
+          --force BOOL       Force run, remove __serverus.lock file from
+                             checkout if necessary
       -h, --help             Display help and usage details
 
 You can also specify the majority of these options in `serverus.json`, using the full name (eg `port` not `p`).

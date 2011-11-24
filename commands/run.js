@@ -74,11 +74,7 @@ module.exports = function run(args){
             }
         });
     });
-
-    console.log('spawning serverus\'s server on ', 'http://' + options.domain + (options.port === 80 ? '' : ':' + options.port));
-    server(options, branches).listen(options.port);
-
-    monitor = setInterval(function(){
+    function updateBranches(){
         git.fetch(function(err, output){
             git.branches('-r', function(err, gitBranches){
                 _(gitBranches).each(function(fullBranchName){
@@ -100,9 +96,15 @@ module.exports = function run(args){
                         }
                     });
                 });
+                setTimeout(updateBranches, 15000);
             });
         });
-    }, 15000);
+    }
+    setTimeout(updateBranches, 15000);
+
+    console.log('spawning serverus\'s server on ', 'http://' + options.domain + (options.port === 80 ? '' : ':' + options.port));
+    server(options, branches).listen(options.port);
+
 
     var exiting = false;
     process.on('SIGINT', function(){
