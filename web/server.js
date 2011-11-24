@@ -85,17 +85,6 @@ module.exports = function(options, branches){
                     });
                 });
             });
-            router.get(/^\/(.*)\/errors$/, getBranch, function(req, res, next){
-                var branch = req.params.branch;
-
-                fs.readFile(path.join(process.cwd(), branch.get('name') + ".error.log"), function(err, output){
-                    res.render('errors.template', {
-                        title: "Error stream for " + branch.get('name'),
-                        branch: branch.get('name'),
-                        output: output
-                    });
-                });
-            });
             router.post(/^\/(.*)\/start$/, getBranch, function(req, res, next){
                 var branch = req.params.branch;
 

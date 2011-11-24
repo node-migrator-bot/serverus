@@ -1,2 +1,2 @@
-<h1>Output stream for {{branch}}</h1>
+<h1>Output for {{branch}}</h1>
 <pre>{{output}}</pre>

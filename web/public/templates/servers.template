@@ -13,8 +13,7 @@
                 <input type="submit" value="Restart" />
             </form>
             <a href="/{{name}}/log" class="gitLog">git log</a>
-            <a href="/{{name}}/out" class="outputStream">output stream</a>
-            <a href="/{{name}}/errors" class="errorStream">error stream</a>
+            <a href="/{{name}}/out" class="outputStream">output</a>
         </li>
         {{/runningBranches}}
     </ul>
