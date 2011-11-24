@@ -30,7 +30,7 @@ module.exports = function(options, branches){
             var hostAndPort = req.headers.host,
                 host = hostAndPort.split(':')[0],
                 branchName = 'origin/' + host.replace('.' + options.domain, ''),
-                branch = branches.get(branchName);
+                branch = branches.find(function(branch){return branch.get('fullName').toLowerCase() === branchName;});
 
             if(options.domain !== 'localhost' && branch){
                 if(branch.get('deployed') && branch.get('status') === 'Running'){
