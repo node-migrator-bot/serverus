@@ -84,7 +84,7 @@ module.exports = function run(args){
                 _(gitBranches).each(function(fullBranchName){
                     var branch = getOrMakeBranch(fullBranchName);
 
-                    if(!branch.get('running')){
+                    if(!branch.get('deployed')){
                         return;
                     }
 

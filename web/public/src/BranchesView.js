@@ -60,7 +60,7 @@ window.BranchesView = (function(Backbone, Mustache){
                     status: branch.get('status'),
                     statusClass: branch.get('status').toLowerCase().replace(/\s/, '')
                 };
-                if(branch.get('running')){
+                if(branch.get('deployed')){
                     memo.runningBranches.push(data);
                 }else{
                     memo.stoppedBranches.push(data);

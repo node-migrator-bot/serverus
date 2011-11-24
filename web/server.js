@@ -33,11 +33,14 @@ module.exports = function(options, branches){
                 branch = branches.get(branchName);
 
             if(options.domain !== 'localhost' && branch){
-                if(branch.get('running')){
+                if(branch.get('deployed') && branch.get('status') === 'Running'){
                     proxy.proxyRequest(req, res, {
                         host: 'localhost',
                         port: branch.get('port')
                     });
+                }else if(branch.get('deployed')){
+                    res.writeHead(503);
+                    res.end("Branch is not running, status: " + branch.get('status'));
                 }else{
                     res.writeHead(404);
                     res.end("Branch is not running yet");
