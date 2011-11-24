@@ -1,7 +1,19 @@
 Serverus
 =====
 
-Serverus is a multi-process server for your git repository.
+Serverus is a branch server for your git repository.  After setting it up, serverus will allow you to view and start/stop each of your git branches from a simple "admin" console, and view the running server for each branch either on a unique port or a subdomain.
+
+Installation
+----
+
+Installation via npm is simple:
+
+    npm install serverus -g
+
+serverus will now be available from the commandline
+
+Usage
+----
 
 First you need to initialise serverus:
 
