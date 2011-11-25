@@ -3,3 +3,4 @@ test/testdir
 tmp/
 *.sublime-*
 .DS_Store
+npm-debug.log

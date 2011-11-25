@@ -38,7 +38,7 @@ html,body{
         z-index: 100;
     }
     .modalPlaceholder > a.close:after{
-        content: 'x';
+        content: '×';
     }
     .modalPlaceholder > div{
         height:100%;
