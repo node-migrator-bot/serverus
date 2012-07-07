@@ -22,7 +22,7 @@ module.exports = function init(args){
         console.error('serverus appears to be created already in ' + process.cwd());
         process.exit(1);
     }
-    if(!path.existsSync(initPath)){
+    if(!fs.existsSync(initPath)){
         console.log('creating', initPath);
         fs.mkdirSync(initPath, '0766');
     }
